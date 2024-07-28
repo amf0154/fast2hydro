@@ -1,4 +1,5 @@
 -r src/requirements.txt
+-r src/api/requirements.txt
 black
 ruff
 pytest

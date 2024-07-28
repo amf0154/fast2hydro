@@ -1,16 +1,12 @@
-import random
-
 import fastapi
 
-from .data import names
+from .routers import holtwinter_router
 
 app = fastapi.FastAPI()
 
+app.include_router(holtwinter_router.router, prefix="/holtwinter", tags=["Holt-Winter Model"])
 
-@app.get("/generate_name")
-async def generate_name(starts_with: str = None):
-    name_choices = names
-    if starts_with:
-        name_choices = [name for name in name_choices if name.lower().startswith(starts_with.lower())]
-    random_name = random.choice(name_choices)
-    return {"name": random_name}
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)

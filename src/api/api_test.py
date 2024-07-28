@@ -26,3 +26,9 @@ def test_generate_name_params_upper():
     response = client.get("/generate_name?starts_with=NE")
     assert response.status_code == 200
     assert response.json()["name"] == "Newell"
+
+
+def test_square():
+    response = client.get("/square?number=4")
+    assert response.status_code == 200
+    assert response.json() == {"number": 4, "square": 16}

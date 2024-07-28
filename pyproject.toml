@@ -6,7 +6,7 @@ src = ["src"]
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-select = ["E", "F", "I", "UP"]
+select = ["E", "F", "W", "C"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --cov=src"
