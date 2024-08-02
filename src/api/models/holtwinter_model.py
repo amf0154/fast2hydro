@@ -275,7 +275,7 @@ class HoltWintersPressureModel:
         interpolation_method (str, optional): Метод интерполяции для восстановления частоты.
 
         Возвращает:
-        DataFrame: Датафрейм с двумя столбцами: 'Дата' и 'Прогноз'.
+        DataFrame: Датафрейм с двумя столбцами: 'Date' и 'Forecast'.
         """
         if self.model is not None:
             predictions = self.model.predict(start=start, end=end)
@@ -286,7 +286,7 @@ class HoltWintersPressureModel:
             predictions = predictions.round(0)
 
             # Создаем DataFrame с двумя столбцами
-            prediction_df = pd.DataFrame({"Дата": predictions.index, "Прогноз": predictions.values})
+            prediction_df = pd.DataFrame({"Date": predictions.index, "Forecast": predictions.values})
 
             return prediction_df
         else:
