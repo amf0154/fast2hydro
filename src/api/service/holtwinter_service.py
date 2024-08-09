@@ -13,7 +13,8 @@ def train_holtwinters_model(
     df, date_column, value_column = model.load_data(file_path)
     model.train_holt_winters_model(df, date_column, value_column, seasonal_periods, trend, seasonal, aggregation_freq)
 
-    model_folder = os.path.join("src", "api", "stored_models", "holtwinter")
+    model_folder = os.path.join("stored_models", "holtwinter")
+
     os.makedirs(model_folder, exist_ok=True)
 
     if not model_name:

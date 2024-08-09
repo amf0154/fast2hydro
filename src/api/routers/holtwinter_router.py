@@ -10,7 +10,9 @@ router = APIRouter()
 @router.post("/train")
 def train_holtwinter_model(
     file_path: str = Query(
-        ..., description="Путь к файлу с данными (первая колонка Дата, вторая Значение)", example="path/data/data.xlsx"
+        ...,
+        description="Путь к файлу с данными (первый столбец Дата, второй Значение)",
+        example="fast2hydro/data/test_train_data.xlsx",
     ),
     model_name: str = Query(None, description="Уникальное имя модели", example="my_holtwinter_model"),
     seasonal_periods: int = Query(
@@ -32,7 +34,9 @@ def train_holtwinter_model(
 @router.post("/predict")
 def predict_holtwinter_model(
     model_file_path: str = Query(
-        ..., description="Путь к файлу модели для предсказания", example="my_holtwinter_model.pkl"
+        ...,
+        description="Путь к файлу модели для предсказания",
+        example="stored_models/holtwinter/my_holtwinter_model.pkl",
     ),
     start_date: str = Query(
         ...,
@@ -58,7 +62,11 @@ def predict_holtwinter_model(
 
 @router.get("/summary", response_model=ModelSummary)
 def get_model_summary(
-    model_name: str = Query(..., description="Путь модели для получения резюме", example="my_holtwinter_model")
+    model_name: str = Query(
+        ...,
+        description="Путь модели для получения резюме",
+        example="fast2hydro/stored_models/my_holtwinter_model/my_holtwinter_model.pkl",
+    )
 ):
     try:
         model_summary = load_model_summary(model_name)
