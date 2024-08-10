@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from ..schemas.holtwinter_schemas import ErrorResponse, ModelSummary
+from ..schemas.holtwinter_schemas import MetricsResponse, ModelSummary
 from ..service.holtwinter_service import load_model_summary, predict_holtwinters_model, train_holtwinters_model
-from ..service.utils import calculate_errors
+from ..service.utils import calculate_metrics
 
 router = APIRouter()
 
@@ -75,8 +75,8 @@ def get_model_summary(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/calculate_errors", response_model=ErrorResponse)
-def calculate_model_errors(
+@router.post("/calculate_metrics", response_model=MetricsResponse)
+def calculate_model_metrics(
     actual_file_path: str = Query(
         ..., description="Путь к файлу с реальными данными", example="/path/to/actual_data.xlsx"
     ),
@@ -85,7 +85,7 @@ def calculate_model_errors(
     ),
 ):
     try:
-        errors = calculate_errors(actual_file_path, predicted_file_path)
-        return errors
+        metrics = calculate_metrics(actual_file_path, predicted_file_path)
+        return metrics
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,8 +1,9 @@
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
+import numpy as np
 
 
-def calculate_errors(actual_file_path, predicted_file_path):
+def calculate_metrics(actual_file_path, predicted_file_path):
     """
     Рассчитывает различные виды погрешностей между реальными и прогнозируемыми данными.
 
@@ -44,9 +45,9 @@ def calculate_errors(actual_file_path, predicted_file_path):
     predicted_values = merged_df["predicted"]
 
     errors = {
-        "mean_absolute_error": mean_absolute_error(actual_values, predicted_values).round(3),
-        "mean_squared_error": mean_squared_error(actual_values, predicted_values).round(3),
-        "mean_absolute_percentage_error": mean_absolute_percentage_error(actual_values, predicted_values).round(3),
+        "mean_absolute_error": mean_absolute_error(actual_values, predicted_values).round(2),
+        "root_mean_squared_error": np.sqrt(mean_squared_error(actual_values, predicted_values)).round(2),
+        "mean_absolute_percentage_error": mean_absolute_percentage_error(actual_values, predicted_values).round(2),
     }
 
     return errors

@@ -45,7 +45,11 @@ def predict_holtwinters_model(model_file_path, start, end, restore_freq=True, ou
 
     if output_format == "excel":
         # Формируем путь к файлу для сохранения предсказаний
-        model_folder = os.path.join("src", "api", "result", "holtwinter")
+        model_folder = os.path.join("result_predictions", "holtwinter")
+
+        # Создание папки, если её нет
+        os.makedirs(model_folder, exist_ok=True)
+
         output_file_path = os.path.join(
             model_folder, f"{model_name}_predictions_{start.replace(':', '-')}_{end.replace(':', '-')}.xlsx"
         )

@@ -15,7 +15,7 @@ class ModelSummary(BaseModel):
     seasonal: str | None
 
 
-class ErrorResponse(BaseModel):
+class MetricsResponse(BaseModel):
     mean_absolute_error: float
-    mean_squared_error: float
+    root_mean_squared_error: float
     mean_absolute_percentage_error: float
