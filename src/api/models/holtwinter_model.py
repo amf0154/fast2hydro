@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from scipy.fft import fft
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import time  # Добавлено для измерения времени
+from datetime import timedelta  # Для удобного отображения времени
 
 
 def detect_frequency(df, date_column):
@@ -72,6 +74,7 @@ class HoltWintersPressureModel:
         self.training_start_date = None
         self.training_end_date = None
         self.num_original_data_points = None
+        self.training_duration = None  # Временя обучения
 
     @staticmethod
     def load_data(file_path):
@@ -208,9 +211,15 @@ class HoltWintersPressureModel:
         self.trend = trend
         self.seasonal = seasonal
 
+        start_time = time.time()  # Запуск таймера
+
         self.model = ExponentialSmoothing(
             y, seasonal_periods=seasonal_periods, trend=trend, seasonal=seasonal, initialization_method="estimated"
         ).fit()
+
+        end_time = time.time()  # Остановка таймера
+        duration = timedelta(seconds=(end_time - start_time))  # Сохранение длительности обучения
+        self.training_duration = str(duration)  # Сохранение длительности обучения в формате HH:MM:SS
         return self.model
 
     def save_model(self, file_path):
@@ -233,6 +242,7 @@ class HoltWintersPressureModel:
                         "training_start_date": self.training_start_date,
                         "training_end_date": self.training_end_date,
                         "num_original_data_points": self.num_original_data_points,
+                        "training_duration": self.training_duration,
                     },
                     f,
                 )
@@ -261,6 +271,8 @@ class HoltWintersPressureModel:
                 self.training_start_date = data["training_start_date"]
                 self.training_end_date = data["training_end_date"]
                 self.num_original_data_points = data["num_original_data_points"]
+                self.training_duration = data["training_duration"]
+
         else:
             raise FileNotFoundError(f"Модель не найдена {file_path}")
 
@@ -275,7 +287,7 @@ class HoltWintersPressureModel:
         interpolation_method (str, optional): Метод интерполяции для восстановления частоты.
 
         Возвращает:
-        DataFrame: Датафрейм с двумя столбцами: 'Date' и 'Forecast'.
+        DataFrame: Датафрейм с двумя столбцами: 'date' и 'values'.
         """
         if self.model is not None:
             predictions = self.model.predict(start=start, end=end)
@@ -286,7 +298,7 @@ class HoltWintersPressureModel:
             predictions = predictions.round(0)
 
             # Создаем DataFrame с двумя столбцами
-            prediction_df = pd.DataFrame({"Date": predictions.index, "Forecast": predictions.values})
+            prediction_df = pd.DataFrame({"date": predictions.index, "values": predictions.values})
 
             return prediction_df
         else:
@@ -312,6 +324,7 @@ class HoltWintersPressureModel:
                 "Seasonal Periods": self.seasonal_periods,
                 "Trend": self.trend,
                 "Seasonal": self.seasonal,
+                "Training Duration": str(self.training_duration),  # Время обучения
             }
             return summary
         else:

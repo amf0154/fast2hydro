@@ -6,3 +6,4 @@ __pycache__/
 .coverage
 .env/
 Памятка по git и requirements.txt
+temp

@@ -1,5 +1,3 @@
-import random
-
 from fastapi.testclient import TestClient
 
 from .main import app
@@ -7,28 +5,25 @@ from .main import app
 client = TestClient(app)
 
 
-def test_generate_name():
-    random.seed(1)
-    response = client.get("/generate_name")
+def test_calculate_metrics_from_json():
+    # Пример данных для тестирования
+    test_data = {
+        "real_data": [{"date": "2024-08-11 00:00", "value": 100.5}, {"date": "2024-08-12 00:00", "value": 102.3}],
+        "predicted_data": [{"date": "2024-08-11 00:00", "value": 101}, {"date": "2024-08-12 00:00", "value": 103}],
+    }
+
+    # Ожидаемый результат
+    expected_response = {
+        "mean_absolute_error": 0.6,
+        "root_mean_squared_error": 0.61,
+        "mean_absolute_percentage_error": 0.01,
+    }
+
+    # Отправка POST запроса к эндпоинту
+    response = client.post("/calculate_metrics_from_json", json=test_data)
+
+    # Проверка успешного выполнения запроса
     assert response.status_code == 200
-    assert response.json()["name"] == "Belton"
 
-
-def test_generate_name_params():
-    random.seed(1)
-    response = client.get("/generate_name?starts_with=n")
-    assert response.status_code == 200
-    assert response.json()["name"] == "Nancy"
-
-
-def test_generate_name_params_upper():
-    random.seed(1)
-    response = client.get("/generate_name?starts_with=NE")
-    assert response.status_code == 200
-    assert response.json()["name"] == "Newell"
-
-
-def test_square():
-    response = client.get("/square?number=4")
-    assert response.status_code == 200
-    assert response.json() == {"number": 4, "square": 16}
+    # Проверка соответствия ответа ожидаемым метрикам
+    assert response.json() == expected_response

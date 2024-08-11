@@ -23,6 +23,8 @@ def train_holtwinters_model(
     model_file_path = os.path.join(model_folder, f"{model_name}.pkl")
     model.save_model(model_file_path)
 
+    return model_file_path
+
 
 def save_predictions_to_excel(predictions, output_file_path):
     """
@@ -58,7 +60,7 @@ def predict_holtwinters_model(model_file_path, start, end, restore_freq=True, ou
     else:
         # Преобразование DataFrame в список словарей для JSON
         predictions_dict = predictions.to_dict("records")
-        return {"predictions": predictions_dict}
+        return {"predicted_data": predictions_dict}
 
 
 def load_model_summary(model_file_path):
@@ -77,6 +79,7 @@ def load_model_summary(model_file_path):
         seasonal_periods=model.seasonal_periods,
         trend=model.trend,
         seasonal=model.seasonal,
+        training_duration=model.training_duration,
     )
 
     return model_summary
