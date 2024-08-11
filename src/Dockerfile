@@ -2,7 +2,7 @@
 FROM python:3.10
 
 # Устанавливаем рабочую директорию в контейнере
-WORKDIR /code
+WORKDIR /project
 
 # Копируем файл зависимостей в рабочую директорию
 COPY requirements.txt .

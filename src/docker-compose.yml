@@ -5,8 +5,8 @@ services:
     image: amf0154/fastapi:1.5.1
     container_name: fastapi
     volumes:
-      - /projects/shared/data:/code/data
-      - /projects/shared/models:/code/src/api/stored_models
+      - /projects/shared/data:/project/data
+      - /projects/shared/models:/project/stored_models
     ports:
       - "3100:3100"
     command: ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "api.main:app"]
