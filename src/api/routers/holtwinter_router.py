@@ -1,6 +1,14 @@
 from fastapi import APIRouter, HTTPException, Query, Body
 
-from ..schemas.holtwinter_schemas import ModelSummary, MetricsResponse, MetricsRequest
+from ..schemas.holtwinter_schemas import (
+    ModelSummary,
+    MetricsResponse,
+    MetricsRequest,
+    TrainHoltWintersModelRequest,
+    TrainHoltWintersModelResponse,
+    PredictHoltWintersModelResponse,
+    PredictHoltWintersModelRequest,
+)
 from ..service.holtwinter_service import load_model_summary, predict_holtwinters_model, train_holtwinters_model
 from ..service.utils import calculate_metrics_from_json
 
@@ -9,80 +17,104 @@ router = APIRouter()
 
 @router.post("/train")
 def train_holtwinter_model(
-    file_path: str = Query(
-        ...,
-        description="Путь к файлу с данными (первый столбец Дата, второй Значение)",
-        example="fast2hydro/data/test_train_data.xlsx",
-    ),
-    model_name: str = Query(None, description="Уникальное имя модели", example="my_holtwinter_model"),
-    seasonal_periods: int = Query(
-        None, description="Сезонный период (определяется автоматически, если не задан)", example=""
-    ),
-    trend: str = Query(None, description="Тип тренда ('add', 'mul' или None (по умолчанию))", example=""),
-    seasonal: str = Query("add", description="Тип сезонности ('add' (по умолчанию) или 'mul')", example="add"),
-    aggregation_freq: str = Query(
-        None, description="Частота агрегации данных ('5min', '10min', '30min')", example="5min"
-    ),
+    request: TrainHoltWintersModelRequest = Body(..., description="Параметры для обучения модели Хольта-Винтерса")
 ):
     """
     Обучает модель Хольта-Винтерса на основе предоставленных данных.
 
-    Эндпоинт принимает путь к файлу с данными, которые содержат даты в первом столбце и соответствующие
-    значения во втором столбце. Пользователь может задать уникальное имя для модели,
-    указать сезонный период, тип тренда и сезонности, а также частоту агрегации данных.
+    Эндпоинт принимает путь к файлу с данными, которые должны содержать следующие данные:
+
+    - **Дата:** Даты должны находиться в первом столбце файла.
+    - **Значения:** Второй столбец должен содержать числовые значения, соответствующие каждой дате
+
+    Пользователь может задать следующие параметры:
+
+    - **model_name:** Уникальное имя для модели, чтобы отличать её от других моделей.
+    - **seasonal_periods:** Сезонный период, который будет использоваться моделью.
+    Если не задан, период будет определен автоматически.
+    - **trend:** Тип тренда для модели ('add', 'mul' или None).
+    - **seasonal:** Тип сезонности для модели ('add' или 'mul').
+    - **aggregation_freq:** Частота агрегации данных (например, '5min', '10min', '30min').
+
     Если параметры не заданы, будут использованы значения по умолчанию или автоматически определенные параметры.
-    После обучения модель сохраняется, и возвращается путь к файлу с моделью.
 
-    Возвращает: обученную модель с расширением pkl с указанием пути сохранения
+    После успешного обучения модель будет сохранена в файл с расширением .pkl, и возвращается путь к файлу с моделью.
+
+    Возвращает:
+    - **success:** Булево значение, указывающее на успешность операции.
+    - **message:** Сообщение об успешности операции или описание ошибки.
     """
-
     try:
-        model_file_path = train_holtwinters_model(
-            file_path, model_name, seasonal_periods, trend, seasonal, aggregation_freq
+        train_holtwinters_model(
+            file_path=request.file_path,
+            model_name=request.model_name,
+            seasonal_periods=request.seasonal_periods,
+            trend=request.trend,
+            seasonal=request.seasonal,
+            aggregation_freq=request.aggregation_freq,
         )
-        return {"message": f"Модель Хольта-Винтерса успешно обучена и сохранена в '{model_file_path}'"}
+        return TrainHoltWintersModelResponse(success=True, message="Модель Хольта-Винтерса успешно обучена")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return TrainHoltWintersModelResponse(success=False, message=str(e))
 
 
-@router.post("/predict")
+@router.post("/predict", response_model=PredictHoltWintersModelResponse)
 def predict_holtwinter_model(
-    model_file_path: str = Query(
-        ...,
-        description="Путь к файлу модели для предсказания",
-        example="stored_models/holtwinter/my_holtwinter_model.pkl",
-    ),
-    start_date: str = Query(
-        ...,
-        description="Дата начала предсказания в формате YYYY-MM-DD или YYYY-MM-DD HH:MM",
-        example="2024-06-07 23:59",
-    ),
-    end_date: str = Query(
-        ...,
-        description="Дата окончания предсказания в формате YYYY-MM-DD или YYYY-MM-DD HH:MM",
-        example="2024-06-08 23:59",
-    ),
-    restore_freq: bool = Query(True, description="Восстановить исходную частоту данных", example=True),
-    output_format: str = Query(
-        "json", description="Формат вывода данных в result\\holtwinter: 'json' или 'excel'", example="json"
-    ),
+    request: PredictHoltWintersModelRequest = Body(
+        ..., description="Параметры для выполнения предсказания модели Хольта-Винтерса"
+    )
 ):
     """
     Выполняет предсказание на основе обученной модели Хольта-Винтерса.
 
-    Эндпоинт принимает путь к файлу с обученной моделью и диапазон дат для выполнения предсказания.
-    Пользователь может указать, восстановить ли исходную частоту данных и в каком формате сохранить
-    результат (JSON или Excel). После успешного выполнения возвращает предсказанные данные в выбранном формате.
+    **Описание входных данных:**
+    - **model_file_path**: Путь к файлу с обученной моделью для предсказания.
+    - **start_date**: Дата начала предсказания в формате `'DD-MM-YYYY'` или `'DD-MM-YYYY HH:MM'`.
+    - **end_date**: Дата окончания предсказания в формате `'DD-MM-YYYY'` или `'DD-MM-YYYY HH:MM'`.
+    - **restore_freq**: Флаг, указывающий на необходимость восстановления исходной частоты данных. По умолчанию `True`.
+    - **output_format**: Формат вывода данных. Допустимые значения: `'json'` или `'excel'`. По умолчанию `'json'`.
 
-    Возвращает:
-    - Предсказанные данные в указанном формате.
+    **Возвращает:**
+    - **success**: Булево значение, указывающее на успешность операции.
+    - **message**: Сообщение об успешности операции или описание ошибки.
+    - **data**: Результаты предсказания в указанном формате. В случае ошибки значение будет `null`.
+
+    **Пример успешного ответа (JSON):**
+    ```json
+    {
+      "success": true,
+      "message": "Предсказание успешно выполнено",
+      "data": {
+        "07-06-2024 23:59": 123.45,
+        "08-06-2024 00:00": 127.89
+      }
+    }
+    ```
+
+    **Пример ошибки:**
+    ```json
+    {
+      "success": false,
+      "message": "Описание ошибки",
+      "data": null
+    }
+    ```
     """
-
     try:
-        result = predict_holtwinters_model(model_file_path, start_date, end_date, restore_freq, output_format)
-        return result
+        # Вызов функции предсказания
+        prediction_result = predict_holtwinters_model(
+            model_file_path=request.model_file_path,
+            start=request.start,
+            end=request.end,
+            restore_freq=request.restore_freq,
+            output_format=request.output_format,
+        )
+
+        return PredictHoltWintersModelResponse(
+            success=True, message="Предсказание успешно выполнено", data=prediction_result
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return PredictHoltWintersModelResponse(success=False, message=str(e), data=None)
 
 
 @router.get("/summary", response_model=ModelSummary)

@@ -20,10 +20,12 @@ def detect_frequency(df, date_column):
     Возвращает:
     str: Частота временного ряда.
     """
-    df[date_column] = pd.to_datetime(df[date_column])
+    df[date_column] = pd.to_datetime(df[date_column], dayfirst=True)
     freq = pd.infer_freq(df[date_column])
+    print(freq)
     if freq == "T":
         freq = "1min"
+    print(freq)
     return freq
 
 
@@ -39,7 +41,7 @@ def detect_seasonal_period(df, date_column, value_column):
     Возвращает:
     int: Сезонный период.
     """
-    df[date_column] = pd.to_datetime(df[date_column])
+    df[date_column] = pd.to_datetime(df[date_column], dayfirst=True)
     freq = detect_frequency(df, date_column)
     if freq is None:
         raise ValueError("Не удалось определить частоту временного ряда.")
@@ -79,13 +81,13 @@ class HoltWintersPressureModel:
     @staticmethod
     def load_data(file_path):
         """
-        Загружает данные из файла и проверяет их формат.
+        Загружает данные из файла, проверяет их формат и обрабатывает неравномерные временные ряды.
 
         Параметры:
         file_path (str): Путь к файлу.
 
         Возвращает:
-        DataFrame: Загруженный датафрейм.
+        DataFrame: Загруженный и обработанный датафрейм.
         str: Название столбца с датами.
         str: Название столбца со значениями.
         """
@@ -100,10 +102,29 @@ class HoltWintersPressureModel:
             raise ValueError("Файл должен содержать две колонки: дата и значение.")
 
         date_column, value_column = df.columns
-        df[date_column] = pd.to_datetime(df[date_column], errors="coerce")
+        df[date_column] = pd.to_datetime(df[date_column], errors="coerce", dayfirst=True)
 
+        # Проверка на наличие некорректных значений в столбце даты
         if df[date_column].isnull().any():
-            raise ValueError("Некоторые значения в колонке дат не могут быть преобразованы в формат даты.")
+            raise ValueError(
+                "Некоторые значения в колонке дат не могут быть преобразованы в формат даты. Проверьте данные."
+            )
+
+        df.set_index(date_column, inplace=True)
+
+        # Здесь мы определили медианную частоту временных меток (данные приходят с пропусками времени)
+        time_diffs = df.index.to_series().diff().dropna().dt.total_seconds()
+        median_frequency = time_diffs.median()
+        median_freq_str = f"{int(median_frequency)}S"
+
+        # Ресемплирование с использованием медианной частоты
+        df = df.resample(median_freq_str).mean()
+
+        # Заменяем пустые значения интерполяцией
+        df[value_column].interpolate(method="linear", inplace=True)
+
+        # Восстановление индекса
+        df.reset_index(inplace=True)
 
         return df, date_column, value_column
 
@@ -121,7 +142,7 @@ class HoltWintersPressureModel:
         Возвращает:
         DataFrame: Агрегированный датафрейм.
         """
-        df[date_column] = pd.to_datetime(df[date_column])
+        df[date_column] = pd.to_datetime(df[date_column], dayfirst=True)
         df.set_index(date_column, inplace=True)
         aggregated_df = df.resample(freq).mean()
         aggregated_df[value_column] = aggregated_df[value_column].interpolate()
@@ -134,6 +155,7 @@ class HoltWintersPressureModel:
         Возвращает:
         float: Коэффициент агрегации.
         """
+
         if isinstance(self.aggregated_freq, str):
             if self.aggregated_freq.endswith("min"):
                 try:
@@ -144,7 +166,7 @@ class HoltWintersPressureModel:
                 freq_minutes = 1
             else:
                 freq_minutes = pd.to_timedelta(self.aggregated_freq).seconds // 60
-
+            print(self.original_freq)
             if self.original_freq.endswith("min"):
                 try:
                     original_freq_minutes = int(self.original_freq[:-3])
@@ -156,6 +178,7 @@ class HoltWintersPressureModel:
                 original_freq_minutes = pd.to_timedelta(self.original_freq).seconds // 60
 
             return original_freq_minutes / freq_minutes
+
         return 1
 
     def train_holt_winters_model(
@@ -177,9 +200,9 @@ class HoltWintersPressureModel:
         ExponentialSmoothing: Обученная модель.
         """
         df = df.copy()
-        df[date_column] = pd.to_datetime(df[date_column])
+        df[date_column] = pd.to_datetime(df[date_column], dayfirst=True)
         self.original_freq = detect_frequency(df, date_column)
-
+        print("я здесь")
         original_data_len = len(df)
         self.num_original_data_points = original_data_len
         self.training_start_date = df[date_column].min()
@@ -199,6 +222,7 @@ class HoltWintersPressureModel:
 
         # Проверка на достаточность данных для двух полных сезонных циклов
         aggregation_factor = self.get_aggregation_factor()
+
         min_required_data_points = 2 * seasonal_periods / aggregation_factor
         if original_data_len < min_required_data_points:
             raise ValueError(
@@ -290,6 +314,8 @@ class HoltWintersPressureModel:
         DataFrame: Датафрейм с двумя столбцами: 'date' и 'values'.
         """
         if self.model is not None:
+            # Преобразуем строки дат в объекты datetime с использованием dayfirst=True
+
             predictions = self.model.predict(start=start, end=end)
 
             if restore_freq and self.original_freq != self.aggregated_freq:
@@ -298,8 +324,9 @@ class HoltWintersPressureModel:
             predictions = predictions.round(0)
 
             # Создаем DataFrame с двумя столбцами
-            prediction_df = pd.DataFrame({"date": predictions.index, "values": predictions.values})
-
+            prediction_df = pd.DataFrame(
+                {"date": predictions.index.strftime("%d-%m-%Y %H:%M"), "value": predictions.values}
+            )
             return prediction_df
         else:
             raise ValueError("Модель еще не обучена.")

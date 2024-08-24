@@ -69,6 +69,10 @@ def calculate_metrics_from_json(real_data, predictions_data):
 
     date_column = actual_df.columns[0]
 
+    # Предполагается, что дата в формате "день-месяц-год часы:минуты"
+    actual_df[date_column] = pd.to_datetime(actual_df[date_column], format="%d-%m-%Y %H:%M")
+    predicted_df[date_column] = pd.to_datetime(predicted_df[date_column], format="%d-%m-%Y %H:%M")
+
     # Переименование столбцов для единообразия
     actual_df.columns = [date_column, "actual"]
     predicted_df.columns = [date_column, "predicted"]

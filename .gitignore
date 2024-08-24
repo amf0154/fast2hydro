@@ -7,3 +7,5 @@ __pycache__/
 .env/
 Памятка по git и requirements.txt
 temp
+stored_models
+data
