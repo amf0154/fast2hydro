@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   fastapi:
-    image: amf0154/fastapi:1.5.3
-    container_name: fastapi
+    image: amf0154/fastapi:1.5.4
+    container_name: m2hydro-fastapi
     volumes:
       - /projects/shared/data:/project/data
       - /projects/shared/models:/project/stored_models
