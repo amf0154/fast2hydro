@@ -114,7 +114,7 @@ class HoltWintersPressureModel:
         # Здесь мы определили медианную частоту временных меток (данные приходят с пропусками времени)
         time_diffs = df.index.to_series().diff().dropna().dt.total_seconds()
         median_frequency = time_diffs.median()
-        median_freq_str = f"{int(median_frequency)}S"
+        median_freq_str = f"{int(abs(median_frequency))}S"
 
         # Ресемплирование с использованием медианной частоты
         df = df.resample(median_freq_str).mean()
@@ -201,7 +201,6 @@ class HoltWintersPressureModel:
         df = df.copy()
         df[date_column] = pd.to_datetime(df[date_column], dayfirst=True)
         self.original_freq = detect_frequency(df, date_column)
-        print("я здесь")
         original_data_len = len(df)
         self.num_original_data_points = original_data_len
         self.training_start_date = df[date_column].min()
